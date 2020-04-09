@@ -10,6 +10,25 @@ class TinyInterpreter(object):
     """
     def __init__(self):
         self.stack = []
+        self.environment = {}
+
+    def STORE_NAME(self, name):
+        """store name bind name and value
+        
+        Arguments:
+            name {[string]} -- [description]
+        """
+        val = self.stack.pop()
+        self.environment[name] = val
+    
+    def LOAD_NAME(self, name):
+        """implementation of load name byte code
+        
+        Arguments:
+            name {[string]} -- [name to load]
+        """
+        val = self.environment[name]
+        self.stack.append(val)
 
     def LOAD_VALUE(self, number):
         """
@@ -34,6 +53,22 @@ class TinyInterpreter(object):
         second_num = self.stack.pop()
         self.stack.append(first_num + second_num)
 
+    def parse_arg(self, instruction, arg, what_to_execute):
+        """understand what arg means to each instruction
+        
+        Arguments:
+            instruction {[str]} -- [description]
+            arg {[str]} -- [description]
+            what_to_execute {[dict]} -- [description]
+        """
+        numbers = ['LOAD_VALUE']
+        names = ['LOAD_NAME', 'STORE_NAME']
+        if instruction in numbers:
+            arg = what_to_execute['numbers'][arg]
+        elif instruction in names:
+            arg = what_to_execute['names'][arg]
+        return arg
+
     def run_code(self, what_to_execute):
         """
         loops each instruction, process args in each instruction,
@@ -42,28 +77,28 @@ class TinyInterpreter(object):
         :return:
         """
         instructions = what_to_execute.get('instructions', [])
-        numbers = what_to_execute.get('numbers', [])
         for each_instruct in instructions:
             instruction, arg = each_instruct
-            if instruction == 'LOAD_VALUE':
-                number = numbers[arg]
-                self.LOAD_VALUE(number)
-            elif instruction == 'ADD_TWO_VALUES':
-                self.ADD_TWO_VALUES()
-            else:  # PRINT_ANSWER
-                self.PRINT_ANSWER()
-
+            arg = self.parse_arg(instruction, arg, what_to_execute)
+            method = getattr(self, instruction)
+            if arg is None:
+                method()
+            else:
+                method(arg)
 
 if __name__ == "__main__":
-    # 7 + 5
+    # 1 + 2
     what_to_execute = {
-        'instructions': [
-            ('LOAD_VALUE', 0),
-            ('LOAD_VALUE', 1),
-            ('ADD_TWO_VALUES', None),
-            ('PRINT_ANSWER', None)
-        ],
-        'numbers': [7, 5]
+        "instructions": [("LOAD_VALUE", 0),
+                         ("STORE_NAME", 0),
+                         ("LOAD_VALUE", 1),
+                         ("STORE_NAME", 1),
+                         ("LOAD_NAME", 0),
+                         ("LOAD_NAME", 1),
+                         ("ADD_TWO_VALUES", None),
+                         ("PRINT_ANSWER", None)],
+        "numbers": [1, 2],
+        "names":   ["a", "b"]
     }
 
     ti = TinyInterpreter()
